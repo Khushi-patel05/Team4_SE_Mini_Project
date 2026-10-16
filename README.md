@@ -20,7 +20,7 @@ Contains individual lab submissions covering requirements engineering, functiona
 Contains individual submissions documenting project planning and Agile development activities, including epics, user stories, story points, and sprint planning.
 
 ### Lab 3 — UML Component Modelling
-Contains individual submissions presenting the system's component architecture, component interactions, and interfaces for the assigned use case.
+Contains individual submissions presenting the system's component architecture, component interactions, and interfaces for the assigned usecase.
 
 ## Purpose
 
