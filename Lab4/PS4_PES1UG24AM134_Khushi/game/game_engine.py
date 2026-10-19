@@ -1,3 +1,4 @@
+
 import pygame
 import time
 from collections import deque
@@ -41,13 +42,13 @@ class GameEngine:
         self.solution_path = self.find_shortest_path()
 
     def find_shortest_path(self):
-        """Find the shortest path from the top-left cell to the exit using BFS."""
+        """Find the shortest path from start to exit using BFS."""
         start = (0, 0)
         target = (ROWS - 1, COLS - 1)
         queue = deque([start])
         parents = {start: None}
 
-        # Direction: row change, column change, current wall, opposite wall.
+        # Row change, column change, current wall, opposite wall.
         directions = [
             (-1, 0, 0, 1),  # North
             (1, 0, 1, 0),   # South
@@ -81,6 +82,7 @@ class GameEngine:
 
         path = []
         current = target
+
         while current is not None:
             path.append(current)
             current = parents[current]
@@ -114,30 +116,47 @@ class GameEngine:
 
     def draw_maze(self):
         wall_w = 3
+
         for r in range(ROWS):
             for c in range(COLS):
                 x, y = c * CELL, r * CELL
                 w = self.walls[r][c]
 
                 if w[0]:
-                    pygame.draw.line(self.screen, WALL_COLOR, (x, y), (x + CELL, y), wall_w)
+                    pygame.draw.line(
+                        self.screen, WALL_COLOR,
+                        (x, y), (x + CELL, y), wall_w
+                    )
                 if w[1]:
-                    pygame.draw.line(self.screen, WALL_COLOR, (x, y + CELL), (x + CELL, y + CELL), wall_w)
+                    pygame.draw.line(
+                        self.screen, WALL_COLOR,
+                        (x, y + CELL), (x + CELL, y + CELL), wall_w
+                    )
                 if w[2]:
-                    pygame.draw.line(self.screen, WALL_COLOR, (x + CELL, y), (x + CELL, y + CELL), wall_w)
+                    pygame.draw.line(
+                        self.screen, WALL_COLOR,
+                        (x + CELL, y), (x + CELL, y + CELL), wall_w
+                    )
                 if w[3]:
-                    pygame.draw.line(self.screen, WALL_COLOR, (x, y), (x, y + CELL), wall_w)
+                    pygame.draw.line(
+                        self.screen, WALL_COLOR,
+                        (x, y), (x, y + CELL), wall_w
+                    )
 
     def draw_solution_path(self):
         """Draw colored squares along the BFS solution path."""
         if not self.show_path:
             return
 
+        player_cell = (
+            self.player.rect.centery // CELL,
+            self.player.rect.centerx // CELL,
+        )
+
         for r, c in self.solution_path:
-            # Keep the player's current cell and exit visible.
-            if (r, c) == (self.player.rect.centery // CELL,
-                    self.player.rect.centerx // CELL):
-              continue
+            # Keep the player and exit visible.
+            if (r, c) == player_cell:
+                continue
             if (r, c) == (ROWS - 1, COLS - 1):
                 continue
 
@@ -147,20 +166,50 @@ class GameEngine:
                 CELL - 20,
                 CELL - 20,
             )
-            pygame.draw.rect(self.screen, PATH_COLOR, rect, border_radius=5)
+            pygame.draw.rect(
+                self.screen, PATH_COLOR, rect, border_radius=5
+            )
+
+    def draw_fog_of_war(self):
+        """Darken the maze beyond three cells from the player."""
+        fog = pygame.Surface(
+            (WIDTH, ROWS * CELL), pygame.SRCALPHA
+        )
+        fog.fill((0, 0, 0, 235))
+
+        player_center = self.player.rect.center
+        reveal_radius = 3 * CELL
+
+        # Transparent circle reveals the area around the player.
+        pygame.draw.circle(
+            fog,
+            (0, 0, 0, 0),
+            player_center,
+            reveal_radius,
+        )
+
+        self.screen.blit(fog, (0, 0))
 
     def draw(self):
         self.screen.fill(BG)
         self.draw_maze()
         self.draw_solution_path()
+        self.draw_fog_of_war()
 
-        pygame.draw.rect(self.screen, EXIT_COLOR, self.exit_rect, border_radius=4)
+        # Draw the exit and player above the fog overlay.
+        pygame.draw.rect(
+            self.screen, EXIT_COLOR, self.exit_rect, border_radius=4
+        )
         ex_label = self.font.render("EXIT", True, (20, 80, 20))
-        self.screen.blit(ex_label, (self.exit_rect.x + 2, self.exit_rect.y + 4))
+        self.screen.blit(
+            ex_label,
+            (self.exit_rect.x + 2, self.exit_rect.y + 4),
+        )
         self.player.draw(self.screen)
 
         hud = pygame.Rect(0, ROWS * CELL, WIDTH, 60)
         pygame.draw.rect(self.screen, (30, 30, 50), hud)
+
         time_surf = self.font.render(
             f"Time: {self.elapsed:.1f}s   H = Hint   R = New Maze",
             True,
@@ -169,18 +218,38 @@ class GameEngine:
         self.screen.blit(time_surf, (10, ROWS * CELL + 18))
 
         if self.won:
-            overlay = pygame.Surface((WIDTH, ROWS * CELL), pygame.SRCALPHA)
+            overlay = pygame.Surface(
+                (WIDTH, ROWS * CELL), pygame.SRCALPHA
+            )
             overlay.fill((0, 0, 0, 120))
             self.screen.blit(overlay, (0, 0))
-            msg = self.big_font.render(f"Solved in {self.elapsed:.1f}s!", True, (80, 240, 80))
-            sub = self.font.render("Press R for a new maze", True, (200, 200, 200))
-            self.screen.blit(msg, (WIDTH // 2 - msg.get_width() // 2, ROWS * CELL // 2 - 30))
-            self.screen.blit(sub, (WIDTH // 2 - sub.get_width() // 2, ROWS * CELL // 2 + 20))
+
+            msg = self.big_font.render(
+                f"Solved in {self.elapsed:.1f}s!",
+                True,
+                (80, 240, 80),
+            )
+            sub = self.font.render(
+                "Press R for a new maze",
+                True,
+                (200, 200, 200),
+            )
+            self.screen.blit(
+                msg,
+                (WIDTH // 2 - msg.get_width() // 2,
+                 ROWS * CELL // 2 - 30),
+            )
+            self.screen.blit(
+                sub,
+                (WIDTH // 2 - sub.get_width() // 2,
+                 ROWS * CELL // 2 + 20),
+            )
 
         pygame.display.flip()
 
     def run(self):
         running = True
+
         while running:
             running = self.handle_events()
             self.update()
