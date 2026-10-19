@@ -22,6 +22,9 @@ Contains individual submissions documenting project planning and Agile developme
 ### Lab 3 — UML Component Modelling
 Contains individual submissions presenting the system's component architecture, component interactions, and interfaces for the assigned usecase.
 
+### Lab 4 — Vibe Coding
+Contains individual submissions for the assigned Vibe Coding problems, including implementation, debugging, testing, and improvements made to the starter projects using AI-assisted development tools. Each submission includes the relevant source code and supporting deliverables.
+
 ## Purpose
 
 This repository serves as the central collection of the team's Software Engineering laboratory work. Each lab folder contains the respective submissions of the team members.
