@@ -2,11 +2,9 @@
 """
 GameEngine: owns the basket and all falling objects.
 
-Starter version: basket movement and spawning both work at a basic
-level (Tasks 2 and 3 ask you to improve them), there's no speed boost
-yet (Task 4 builds it from scratch), and catch detection has two
-known bugs (see game/collision.py and the catch-checking loop below)
-that Task 1 asks you to fix.
+Task 1: Fix falling-object collision detection and list mutation.
+Task 2: Keep the basket fully on screen with smooth movement.
+Tasks 3 and 4 will be implemented separately.
 """
 
 import random
@@ -35,6 +33,7 @@ class GameEngine:
         self.objects.append(FallingObject(x=x, y=-14, speed=3))
 
     def handle_input(self, keys_pressed):
+        """Move smoothly while held, keeping the entire basket on screen."""
         if self.game_over:
             return
 
@@ -44,8 +43,12 @@ class GameEngine:
         if keys_pressed[pygame.K_RIGHT]:
             self.basket.x += self.basket.speed
 
-        # Boundary handling will be improved in Task 2.
-        self.basket.x = max(0, min(WIDTH, self.basket.x))
+        # Clamp the basket's center using half its width.
+        half_width = self.basket.width / 2
+        self.basket.x = max(
+            half_width,
+            min(WIDTH - half_width, self.basket.x),
+        )
 
     def handle_keydown(self, key):
         if self.game_over and key == pygame.K_r:
@@ -63,11 +66,10 @@ class GameEngine:
         for obj in self.objects:
             obj.update()
 
-        # Task 1 fix: check both horizontal and vertical overlap.
+        # Task 1: check both horizontal and vertical overlap.
         basket_rect = self.basket.get_rect()
 
-        # Build a separate list first so we do not modify self.objects
-        # while iterating over it.
+        # Check catches separately so iteration isn't disrupted by removals.
         caught_objects = [
             obj for obj in self.objects
             if is_caught(basket_rect, obj)
