@@ -1,3 +1,4 @@
+
 """
 GameEngine: owns the basket and all falling objects.
 
@@ -6,7 +7,7 @@ Task 2: Keep the basket fully on screen with smooth movement.
 Task 3: Vary object spawning positions and intervals, avoid repeated
         positions, keep spawns within the playable area, and cap the
         number of objects on screen.
-Task 4: Temporary speed boost will be implemented separately.
+Task 4: Add a temporary speed boost with a visible indicator.
 """
 
 import random
@@ -44,10 +45,9 @@ class GameEngine:
         min_x = OBJECT_SPAWN_MARGIN
         max_x = WIDTH - OBJECT_SPAWN_MARGIN
 
-        # Try to avoid spawning at the same horizontal position twice
-        # in a row.
         x = None
 
+        # Avoid repeating the previous horizontal spawn position.
         for _ in range(MAX_SPAWN_ATTEMPTS):
             candidate_x = random.randint(min_x, max_x)
 
@@ -55,8 +55,7 @@ class GameEngine:
                 x = candidate_x
                 break
 
-        # If repeated random choices occur, choose a different valid
-        # position deterministically.
+        # Fallback if random attempts repeatedly select the same position.
         if x is None:
             if self.last_spawn_x is not None:
                 x = min_x if self.last_spawn_x != min_x else max_x
@@ -75,7 +74,7 @@ class GameEngine:
         )
 
     def handle_input(self, keys_pressed):
-        """Move smoothly while held, keeping the entire basket on screen."""
+        """Move smoothly while held, keeping the basket on screen."""
         if self.game_over:
             return
 
@@ -85,23 +84,30 @@ class GameEngine:
         if keys_pressed[pygame.K_RIGHT]:
             self.basket.x += self.basket.speed
 
-        # Clamp the basket's center using half its width.
+        # Keep the entire basket within the screen boundaries.
         half_width = self.basket.width / 2
-
         self.basket.x = max(
             half_width,
             min(WIDTH - half_width, self.basket.x),
         )
 
     def handle_keydown(self, key):
+        """Handle restart and speed-boost keyboard controls."""
         if self.game_over and key == pygame.K_r:
             self.__init__()
+            return
+
+        if not self.game_over and key == pygame.K_SPACE:
+            self.basket.activate_boost()
 
     def update(self):
         if self.game_over:
             return
 
-        # Task 3: spawn at random intervals, subject to the object cap.
+        # Task 4: update the boost timer and restore normal speed on expiry.
+        self.basket.update()
+
+        # Task 3: spawn at varied intervals, subject to the object cap.
         self.frames_until_spawn -= 1
 
         if self.frames_until_spawn <= 0:
@@ -116,10 +122,11 @@ class GameEngine:
         for obj in self.objects:
             obj.update()
 
-        # Task 1: check both horizontal and vertical overlap.
+        # Task 1: check horizontal and vertical collision.
         basket_rect = self.basket.get_rect()
 
-        # Check catches separately so iteration isn't disrupted by removals.
+        # Collect caught objects separately to avoid mutating the list
+        # while iterating over it.
         caught_objects = [
             obj for obj in self.objects
             if is_caught(basket_rect, obj)
@@ -161,6 +168,19 @@ class GameEngine:
             f"Misses: {self.misses}/{MAX_MISSES}",
             (10, 36),
         )
+
+        # Task 4: display the boost status and remaining duration.
+        if self.basket.is_boosted():
+            seconds_left = self.basket.boosted_frames / 60
+            boost_text = f"SPEED BOOST! {seconds_left:.1f}s"
+            renderer.draw_text(
+                surface, font, boost_text, (10, 62)
+            )
+        else:
+            renderer.draw_text(
+                surface, font, "Press SPACE for speed boost",
+                (10, 62),
+            )
 
         if self.game_over:
             renderer.draw_banner(
