@@ -66,11 +66,3 @@ maze-runner/
 │   └── player.py
 └── README.md
 ```
-
-## Submission Checklist
-
-- [ ] All 4 tasks completed
-- [ ] Maze is generated fresh each session (R key)
-- [ ] Fog of war renders correctly
-- [ ] Timer leaderboard persists to JSON
-- [ ] Code reviewed with LLM (include chat link)
