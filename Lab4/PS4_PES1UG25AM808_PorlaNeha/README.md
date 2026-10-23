@@ -1,78 +1,141 @@
-# Rock Paper Scissor Lab
+# Lab 4: VibeCoding — Rock Paper Scissors
 
-This project is an interactive hand-game duel using **Pygame**. It introduces students to dictionary-based rule lookups, automated CPU decision-making, temporary result display timers, and modular UI button interaction within an object-oriented codebase.
----
+## 1. Project Overview
 
-## What's Provided
+This project is an interactive Rock Paper Scissors game developed using Python and Pygame. The objective of this lab is to understand an existing codebase, fix bugs, implement additional features, test the application, and document the AI-assisted development process.
 
-A working Rock Paper Scissors game with:
+## 2. Objectives
 
-- Three interactive choice buttons (`ROCK`, `PAPER`, `SCISSORS`) with mouse hover and click response states
-- An automated computer opponent selecting moves at random
-- Live scoreboard tracking player score and CPU score independently
-- Timed result display that shows the outcome for 1.8 seconds before clearing picks for the next round
+- Understand the existing project structure and source code.
+- Fix the inverted winner evaluation bug.
+- Implement a First-to-X Wins match victory system.
+- Implement adaptive AI using player move patterns.
+- Add procedural gesture icons and a reveal animation.
+- Test the application after modifications.
+- Maintain separate Git commits for individual tasks.
+- Document the AI-assisted development process.
 
-It has **one deliberate bug** and **three optional features** left as tasks to implement. You are expected to **analyze**, **interact with an AI assistant**, and **complete/fix** the game to make it fully functional and more interesting.
+## 3. Technologies Used
 
-### **Use an LLM (e.g. ChatGPT or Claude) as your debugging and pair-programming partner for this lab.**
----
+- **Programming Language:** Python
+- **Game Library:** Pygame
+- **Version Control:** Git and GitHub
+- **AI Coding Assistant:** ChatGPT
 
-## Getting Started
+## 4. Project Tasks
 
-### Setup
+### Task 1: Fix Winner Evaluation
 
-1. Make sure you have Python 3.10+ installed.
-2. Install dependencies:
+Correct the winner evaluation logic according to standard Rock Paper Scissors rules:
+
+- Rock beats Scissors.
+- Scissors beats Paper.
+- Paper beats Rock.
+- Identical choices result in a draw.
+
+### Task 2: First-to-X Wins Match Victory
+
+Implement a configurable match victory system in which the first player to reach the specified number of wins is declared the match winner.
+
+### Task 3: Adaptive AI
+
+Implement an adaptive computer opponent that tracks the player's previous moves and uses observed patterns to influence its future choices.
+
+### Task 4: Procedural Gesture Icons and Reveal Animation
+
+Add procedurally generated gesture icons and a reveal animation to improve the game's visual presentation.
+
+## 5. Repository Structure
+
+The project is organized as follows:
+
+```text
+PS4_PES1UG25AM808_PorlaNeha/
+│
+├── game/
+│   ├── button.py
+│   └── game_engine.py
+│
+├── videos/
+│   ├── before.mp4
+│   └── after.mp4
+│
+├── Chat_history.pdf
+├── README.md
+└── main.py
+```
+
+## 6. Installation and Execution
+
+### Prerequisites
+
+- Python 3 installed on the system.
+- Pygame installed.
+- Git installed for version control.
+
+### Install Pygame
 
 ```bash
 pip install pygame
 ```
 
-3. Run the game:
+### Run the Application
+
+Open a terminal in the project directory and execute:
 
 ```bash
 python main.py
 ```
 
-**Controls:** Left-click colored pads to repeat the sequence. Press R to restart after Game Over.
+Use the on-screen Rock, Paper, and Scissors buttons to play the game and verify the results.
 
+## 7. Testing and Validation
 
-## Tasks to Complete
+The application should be tested to verify the following:
 
-Each task must be completed using an iterative process involving LLM suggestions and your critical code review.
+- All three choices work correctly.
+- Winner evaluation follows standard rules.
+- Draws are handled correctly.
+- Player and computer scores update correctly.
+- The match ends when the configured winning score is reached.
+- Adaptive AI uses the player's previous choices.
+- Gesture icons and reveal animations function correctly.
+- The application runs without unexpected errors.
 
-### Task 1: Fix the inverted outcome evaluation bug
+## 8. Before and After Demonstration
 
-Whenever the player throws a winning hand against the computer, the game awards the point to the CPU instead of the player. Correct the outcome evaluation logic so standard rules apply (Rock beats Scissors, Scissors beats Paper, and Paper beats Rock).
+The `videos/` directory contains the demonstration recordings:
 
-### Task 2: Implement "First to X Wins" match victory state
+- **before.mp4:** Demonstrates the original application before modifications.
+- **after.mp4:** Demonstrates the application after modifications.
 
-The game currently loops endlessly with no decisive match conclusion. Introduce a target win ceiling that halts play when reached, presents an end-of-match victory banner declaring the ultimate winner, and prompts the player to restart.
+## 9. Version Control
 
-### Task 3: Implement adaptive AI pattern tracking
+Git and GitHub are used to track project changes. Each task should have a separate commit with a descriptive commit message.
 
-The computer currently picks its moves entirely at random. Introduce adaptive intelligence that records the player's recent throw tendencies and dynamically biases CPU selections toward the counter-move when a player repeatedly favors a specific option.
+Example commit messages:
 
-### Task 4: Implement Procedural Gesture Icons & Reveal Animations
+- `Fix inverted winner evaluation`
+- `Add first-to-X match victory`
+- `Implement adaptive AI pattern tracking`
+- `Add procedural gesture icons and reveal animation`
 
-Selections are currently rendered as plain text labels. Create distinct visual graphic icons for Rock, Paper, and Scissors, adding a synchronized countdown or shaking reveal animation before displaying both choices each turn.
+The completed work should be pushed to the assigned personal GitHub repository according to the lab submission guidelines.
 
----
+## 10. AI Chat History
 
-## Expected Behavior
+The `Chat_history.pdf` file documents the AI conversation associated with the development process, including prompts, responses, debugging guidance, and implementation discussions.
 
-- Clicking any choice button selects that move, rolls a CPU choice, and evaluates the winner correctly.
-- Rock beats Scissors, Scissors beats Paper, Paper beats Rock, and identical choices result in a Draw.
-- Scores increment accurately and the round outcome stays visible for 1.8 seconds before clearing picks back to
----
+## 11. Deliverables
 
-## Folder Structure
+The submission includes:
 
-```
-rock_paper_scissors/
-├── game/
-│   ├── button.py
-│   └── game_engine.py
-├── main.py
-└── README.md
-```
+1. Project source code.
+2. Before-modification demonstration video.
+3. After-modification demonstration video.
+4. AI chat history in PDF format.
+5. Project README documentation.
+
+## 12. Conclusion
+
+This lab demonstrates AI-assisted software development through code understanding, debugging, feature implementation, testing, documentation, and Git-based version control.
