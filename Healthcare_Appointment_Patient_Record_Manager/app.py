@@ -14,6 +14,8 @@ from flask import (
 
 from config import DATABASE_PATH, SECRET_KEY
 
+from auth import auth_bp, initialize_auth_database, role_required
+
 
 # =========================================================
 # APPLICATION CONFIGURATION
@@ -22,6 +24,11 @@ from config import DATABASE_PATH, SECRET_KEY
 app = Flask(__name__)
 app.config["SECRET_KEY"] = SECRET_KEY
 app.config["DATABASE"] = str(DATABASE_PATH)
+
+app.register_blueprint(auth_bp)
+
+with app.app_context():
+    initialize_auth_database()
 
 
 # =========================================================
@@ -225,6 +232,9 @@ def health_check():
 # =========================================================
 
 @app.route("/patients", methods=["GET", "POST"])
+
+@role_required("Administrator", "Doctor", "Receptionist")
+
 def patients():
 
     if request.method == "POST":
@@ -465,6 +475,7 @@ def delete_patient(patient_id):
 # =========================================================
 
 @app.route("/appointments", methods=["GET", "POST"])
+@role_required("Administrator", "Doctor", "Receptionist")
 def appointments():
 
     if request.method == "POST":
