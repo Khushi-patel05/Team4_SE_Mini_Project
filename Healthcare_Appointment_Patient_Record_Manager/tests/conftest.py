@@ -1,4 +1,3 @@
-
 import pytest
 
 import app as app_module
@@ -20,8 +19,15 @@ def app(tmp_path):
 
 @pytest.fixture
 def client(app):
-    """Provide Flask's test client."""
-    return app.test_client()
+    """Provide an authenticated Flask test client."""
+    client = app.test_client()
+
+    with client.session_transaction() as session:
+        session["user_id"] = 1
+        session["username"] = "testuser"
+        session["role"] = "Administrator"
+
+    return client
 
 
 @pytest.fixture
