@@ -13,6 +13,10 @@ from flask import (
 )
 
 from config import DATABASE_PATH, SECRET_KEY
+from medical_records import (
+    medical_records_bp,
+    initialize_medical_records_db,
+)
 
 
 # =========================================================
@@ -22,6 +26,7 @@ from config import DATABASE_PATH, SECRET_KEY
 app = Flask(__name__)
 app.config["SECRET_KEY"] = SECRET_KEY
 app.config["DATABASE"] = str(DATABASE_PATH)
+app.register_blueprint(medical_records_bp)
 
 
 # =========================================================
@@ -88,8 +93,7 @@ def initialize_database():
             )
             WHERE status = 'Scheduled'
         """)
-
-
+    initialize_medical_records_db(app.config["DATABASE"])
 # =========================================================
 # PATIENT VALIDATION
 # =========================================================
@@ -748,4 +752,6 @@ initialize_database()
 
 
 if __name__ == "__main__":
+    initialize_database()
+    initialize_medical_records_db(app.config["DATABASE"])
     app.run(debug=True)
