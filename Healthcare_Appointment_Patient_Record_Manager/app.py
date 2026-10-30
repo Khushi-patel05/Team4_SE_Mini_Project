@@ -18,6 +18,15 @@ from medical_records import (
     initialize_medical_records_db,
 )
 
+from auth import auth_bp, initialize_auth_database, role_required
+
+from medical_records import (
+    medical_records_bp,
+    initialize_medical_records_db,
+)
+
+
+
 
 # =========================================================
 # APPLICATION CONFIGURATION
@@ -26,7 +35,13 @@ from medical_records import (
 app = Flask(__name__)
 app.config["SECRET_KEY"] = SECRET_KEY
 app.config["DATABASE"] = str(DATABASE_PATH)
+
+
+app.register_blueprint(auth_bp)
 app.register_blueprint(medical_records_bp)
+
+with app.app_context():
+    initialize_auth_database()
 
 
 # =========================================================
@@ -93,6 +108,7 @@ def initialize_database():
             )
             WHERE status = 'Scheduled'
         """)
+
     initialize_medical_records_db(app.config["DATABASE"])
 # =========================================================
 # PATIENT VALIDATION
@@ -229,6 +245,9 @@ def health_check():
 # =========================================================
 
 @app.route("/patients", methods=["GET", "POST"])
+
+@role_required("Administrator", "Doctor", "Receptionist")
+
 def patients():
 
     if request.method == "POST":
@@ -469,6 +488,7 @@ def delete_patient(patient_id):
 # =========================================================
 
 @app.route("/appointments", methods=["GET", "POST"])
+@role_required("Administrator", "Doctor", "Receptionist")
 def appointments():
 
     if request.method == "POST":

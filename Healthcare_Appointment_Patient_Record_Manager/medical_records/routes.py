@@ -9,6 +9,7 @@ from flask import (
     render_template,
     request,
     url_for,
+    session
 )
 
 from . import medical_records_bp
@@ -31,9 +32,12 @@ def _clean(value):
 
 @medical_records_bp.before_request
 def ensure_medical_records_schema():
+    if "user_id" not in session:
+        flash("Please log in to access medical records.", "warning")
+        return redirect(url_for("auth.login"))
+
     _ensure_schema()
-
-
+    
 @medical_records_bp.get("/")
 def index():
     """List registered patients and open their clinical records."""
