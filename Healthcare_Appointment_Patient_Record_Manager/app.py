@@ -35,7 +35,7 @@ from medical_records import (
 app = Flask(__name__)
 app.config["SECRET_KEY"] = SECRET_KEY
 app.config["DATABASE"] = str(DATABASE_PATH)
-app.register_blueprint(medical_records_bp)
+
 
 app.register_blueprint(auth_bp)
 app.register_blueprint(medical_records_bp)
