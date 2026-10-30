@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Create Prescription | ClinicCare{% endblock %}
+{% block content %}
+<div class="mb-4"><h1 class="h3 fw-bold">Create Prescription</h1><p class="text-secondary mb-0">{{ history['full_name'] }} · Diagnosis: {{ history['diagnosis'] }}</p></div>
+<div class="card shadow-sm"><div class="card-body p-4">
+<form method="POST">
+  <div class="mb-3"><label class="form-label" for="medication_name">Medication Name</label><input class="form-control" id="medication_name" name="medication_name" maxlength="120" required value="{{ form.get('medication_name','') }}"></div>
+  <div class="mb-3"><label class="form-label" for="dosage">Dosage</label><input class="form-control" id="dosage" name="dosage" maxlength="100" placeholder="e.g. 500 mg" required value="{{ form.get('dosage','') }}"></div>
+  <div class="mb-3"><label class="form-label" for="frequency">Frequency</label><input class="form-control" id="frequency" name="frequency" maxlength="100" placeholder="e.g. Twice daily" required value="{{ form.get('frequency','') }}"></div>
+  <div class="mb-3"><label class="form-label" for="duration">Duration</label><input class="form-control" id="duration" name="duration" maxlength="100" placeholder="e.g. 5 days" required value="{{ form.get('duration','') }}"></div>
+  <div class="d-flex gap-2"><button class="btn btn-primary" type="submit">Save Prescription</button><a class="btn btn-outline-secondary" href="{{ url_for('medical_records.patient_records', patient_id=history['patient_id']) }}">Cancel</a></div>
+</form></div></div>
+{% endblock %}

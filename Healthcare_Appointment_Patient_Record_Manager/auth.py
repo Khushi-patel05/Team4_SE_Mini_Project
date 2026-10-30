@@ -84,8 +84,7 @@ def login_required(view):
 
 
 def role_required(*allowed_roles):
-    """Allow access only to authe
-    nticated users with permitted roles."""
+    """Allow access only to authenticated users with permitted roles."""
 
     def decorator(view):
         @wraps(view)

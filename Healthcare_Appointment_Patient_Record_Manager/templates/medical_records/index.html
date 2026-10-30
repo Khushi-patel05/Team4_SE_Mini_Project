@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Medical Records | ClinicCare{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
+  <div><h1 class="h3 fw-bold">Medical Records</h1><p class="text-secondary mb-0">Select a registered patient to view or add clinical records.</p></div>
+</div>
+<div class="card shadow-sm"><div class="card-body">
+  {% if patients %}
+  <div class="table-responsive"><table class="table table-hover align-middle">
+    <thead><tr><th>Patient ID</th><th>Patient Name</th><th>Phone</th><th></th></tr></thead>
+    <tbody>{% for patient in patients %}
+      <tr><td>{{ patient['patient_code'] or patient['id'] }}</td><td>{{ patient['full_name'] }}</td><td>{{ patient['phone'] }}</td>
+      <td class="text-end"><a class="btn btn-sm btn-primary" href="{{ url_for('medical_records.patient_records', patient_id=patient['id']) }}">Open Records</a></td></tr>
+    {% endfor %}</tbody>
+  </table></div>
+  {% else %}<p class="text-secondary mb-0">No registered patients found. Register a patient first.</p>{% endif %}
+</div></div>
+{% endblock %}
