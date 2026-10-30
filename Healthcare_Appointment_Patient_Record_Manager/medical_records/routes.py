@@ -37,9 +37,7 @@ def ensure_medical_records_schema():
         return redirect(url_for("auth.login"))
 
     _ensure_schema()
-
-
-
+    
 @medical_records_bp.get("/")
 def index():
     """List registered patients and open their clinical records."""
