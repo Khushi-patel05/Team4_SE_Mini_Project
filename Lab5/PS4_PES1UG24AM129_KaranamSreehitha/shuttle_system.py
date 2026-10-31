@@ -2,7 +2,7 @@
 """Campus shuttle timetable and fleet tracking system."""
 
 import json
-import random
+import secrets
 from datetime import datetime
 
 # Global shuttle route data.
@@ -17,11 +17,20 @@ MIN_CAPACITY = 10
 
 def add_trip_log(route_id, passenger_count, logs=None):
     """Add a passenger count to a route and record the trip."""
-    if logs is None:
-        logs = []
-
     if route_id not in routes:
         raise KeyError(f"Route {route_id} does not exist.")
+
+    if (
+        not isinstance(passenger_count, int)
+        or isinstance(passenger_count, bool)
+    ):
+        raise ValueError("Passenger count must be an integer.")
+
+    if passenger_count < 0:
+        raise ValueError("Passenger count cannot be negative.")
+
+    if logs is None:
+        logs = []
 
     routes[route_id]["trips"].append(passenger_count)
     logs.append(
@@ -56,11 +65,8 @@ def underused_routes():
     flagged = []
 
     for route_id in routes:
-        try:
-            if average_load(route_id) < MIN_CAPACITY:
-                flagged.append(route_id)
-        except (KeyError, TypeError, ZeroDivisionError):
-            continue
+        if average_load(route_id) < MIN_CAPACITY:
+            flagged.append(route_id)
 
     return flagged
 
@@ -71,7 +77,7 @@ def assign_driver(route_id):
         raise KeyError(f"Route {route_id} does not exist.")
 
     drivers = ["Prakash", "Leela", "Imran", "Tom"]
-    return random.choice(drivers)
+    return secrets.choice(drivers)
 
 
 def sync_fleet_data(file="fleet.json"):
@@ -88,8 +94,16 @@ def main():
     add_trip_log("R1", 32)
     add_trip_log("R1", 28)
     add_trip_log("R2", 4)
-    add_trip_log("R2", -6)
-    add_trip_log("R3", "full")
+
+    try:
+        add_trip_log("R2", -6)
+    except ValueError as error:
+        print(f"Invalid passenger count: {error}")
+
+    try:
+        add_trip_log("R3", "full")
+    except ValueError as error:
+        print(f"Invalid passenger count: {error}")
 
     print("Driver for R1:", assign_driver("R1"))
     print("Underused:", underused_routes())
