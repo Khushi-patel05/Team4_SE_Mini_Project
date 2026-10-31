@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Add Medical History | ClinicCare{% endblock %}
+{% block content %}
+<div class="mb-4"><h1 class="h3 fw-bold">Add Medical History</h1><p class="text-secondary mb-0">{{ patient['full_name'] }} · {{ patient['patient_code'] or ('Patient #' ~ patient['id']) }}</p></div>
+<div class="card shadow-sm"><div class="card-body p-4">
+<form method="POST">
+  <div class="mb-3"><label class="form-label" for="diagnosis">Diagnosis</label><input class="form-control" id="diagnosis" name="diagnosis" maxlength="200" required value="{{ form.get('diagnosis','') }}"></div>
+  <div class="mb-3"><label class="form-label" for="symptoms">Symptoms</label><textarea class="form-control" id="symptoms" name="symptoms" rows="3" maxlength="2000" required>{{ form.get('symptoms','') }}</textarea></div>
+  <div class="mb-3"><label class="form-label" for="clinical_notes">Clinical Notes</label><textarea class="form-control" id="clinical_notes" name="clinical_notes" rows="5" maxlength="5000" required>{{ form.get('clinical_notes','') }}</textarea></div>
+  <div class="d-flex gap-2"><button class="btn btn-primary" type="submit">Save Medical History</button><a class="btn btn-outline-secondary" href="{{ url_for('medical_records.patient_records', patient_id=patient['id']) }}">Cancel</a></div>
+</form></div></div>
+{% endblock %}
