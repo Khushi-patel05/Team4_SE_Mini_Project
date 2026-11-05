@@ -1,3 +1,4 @@
+
 """Flask routes for Part 3: medical history and prescriptions."""
 
 import sqlite3
@@ -9,11 +10,15 @@ from flask import (
     render_template,
     request,
     url_for,
-    session
+    session,
 )
 
 from . import medical_records_bp
-from .models import get_medical_db_connection, initialize_medical_records_db
+from .models import (
+    get_medical_db_connection,
+    initialize_medical_records_db,
+)
+from auth import role_required
 
 
 def _connection():
@@ -27,20 +32,24 @@ def _ensure_schema():
 
 
 def _clean(value):
+    """Remove leading and trailing whitespace."""
     return (value or "").strip()
 
 
 @medical_records_bp.before_request
 def ensure_medical_records_schema():
+    """Require login and initialize the medical records schema."""
     if "user_id" not in session:
         flash("Please log in to access medical records.", "warning")
         return redirect(url_for("auth.login"))
 
     _ensure_schema()
-    
+
+
 @medical_records_bp.get("/")
+@role_required("Administrator", "Doctor", "Receptionist")
 def index():
-    """List registered patients and open their clinical records."""
+    """List registered patients."""
     with _connection() as connection:
         patients = connection.execute("""
             SELECT id, patient_code, full_name, phone
@@ -48,15 +57,20 @@ def index():
             ORDER BY full_name COLLATE NOCASE
         """).fetchall()
 
-    return render_template("medical_records/index.html", patients=patients)
+    return render_template(
+        "medical_records/index.html",
+        patients=patients,
+    )
 
 
 @medical_records_bp.get("/patient/<int:patient_id>")
+@role_required("Administrator", "Doctor")
 def patient_records(patient_id):
     """Display a patient's medical history and prescriptions."""
     with _connection() as connection:
         patient = connection.execute(
-            "SELECT * FROM patients WHERE id = ?", (patient_id,)
+            "SELECT * FROM patients WHERE id = ?",
+            (patient_id,),
         ).fetchone()
 
         if patient is None:
@@ -92,11 +106,16 @@ def patient_records(patient_id):
     "/patient/<int:patient_id>/history/new",
     methods=["GET", "POST"],
 )
+@role_required("Administrator", "Doctor")
 def add_medical_history(patient_id):
     """Record diagnosis, symptoms and clinical notes for a patient."""
     with _connection() as connection:
         patient = connection.execute(
-            "SELECT id, patient_code, full_name FROM patients WHERE id = ?",
+            """
+            SELECT id, patient_code, full_name
+            FROM patients
+            WHERE id = ?
+            """,
             (patient_id,),
         ).fetchone()
 
@@ -110,16 +129,20 @@ def add_medical_history(patient_id):
         clinical_notes = _clean(request.form.get("clinical_notes"))
 
         errors = []
+
         if not diagnosis or len(diagnosis) > 200:
             errors.append("Enter a diagnosis of 1–200 characters.")
+
         if not symptoms or len(symptoms) > 2000:
             errors.append("Enter symptoms of 1–2000 characters.")
+
         if not clinical_notes or len(clinical_notes) > 5000:
             errors.append("Enter clinical notes of 1–5000 characters.")
 
         if errors:
             for error in errors:
                 flash(error, "danger")
+
             return render_template(
                 "medical_records/add_history.html",
                 patient=patient,
@@ -131,15 +154,26 @@ def add_medical_history(patient_id):
                 INSERT INTO medical_history
                     (patient_id, diagnosis, symptoms, clinical_notes)
                 VALUES (?, ?, ?, ?)
-            """, (patient_id, diagnosis, symptoms, clinical_notes))
+            """, (
+                patient_id,
+                diagnosis,
+                symptoms,
+                clinical_notes,
+            ))
 
         flash("Medical history recorded successfully.", "success")
+
         return redirect(
-            url_for("medical_records.patient_records", patient_id=patient_id)
+            url_for(
+                "medical_records.patient_records",
+                patient_id=patient_id,
+            )
         )
 
     return render_template(
-        "medical_records/add_history.html", patient=patient, form={}
+        "medical_records/add_history.html",
+        patient=patient,
+        form={},
     )
 
 
@@ -147,6 +181,7 @@ def add_medical_history(patient_id):
     "/history/<int:history_id>/prescriptions/new",
     methods=["GET", "POST"],
 )
+@role_required("Administrator", "Doctor")
 def add_prescription(history_id):
     """Create a prescription linked to the selected clinical record."""
     with _connection() as connection:
@@ -162,7 +197,9 @@ def add_prescription(history_id):
         return redirect(url_for("medical_records.index"))
 
     if request.method == "POST":
-        medication_name = _clean(request.form.get("medication_name"))
+        medication_name = _clean(
+            request.form.get("medication_name")
+        )
         dosage = _clean(request.form.get("dosage"))
         frequency = _clean(request.form.get("frequency"))
         duration = _clean(request.form.get("duration"))
@@ -173,8 +210,10 @@ def add_prescription(history_id):
             "Frequency": (frequency, 100),
             "Duration": (duration, 100),
         }
+
         errors = [
-            f"Enter a valid {label.lower()} (maximum {limit} characters)."
+            f"Enter a valid {label.lower()} "
+            f"(maximum {limit} characters)."
             for label, (value, limit) in fields.items()
             if not value or len(value) > limit
         ]
@@ -182,6 +221,7 @@ def add_prescription(history_id):
         if errors:
             for error in errors:
                 flash(error, "danger")
+
             return render_template(
                 "medical_records/add_prescription.html",
                 history=history,
@@ -192,8 +232,12 @@ def add_prescription(history_id):
             with _connection() as connection:
                 connection.execute("""
                     INSERT INTO prescriptions (
-                        patient_id, medical_history_id,
-                        medication_name, dosage, frequency, duration
+                        patient_id,
+                        medical_history_id,
+                        medication_name,
+                        dosage,
+                        frequency,
+                        duration
                     )
                     VALUES (?, ?, ?, ?, ?, ?)
                 """, (
@@ -204,9 +248,17 @@ def add_prescription(history_id):
                     frequency,
                     duration,
                 ))
+
         except sqlite3.IntegrityError:
-            current_app.logger.exception("Prescription integrity error")
-            flash("Could not link the prescription to this clinical record.", "danger")
+            current_app.logger.exception(
+                "Prescription integrity error"
+            )
+
+            flash(
+                "Could not link the prescription to this clinical record.",
+                "danger",
+            )
+
             return redirect(
                 url_for(
                     "medical_records.patient_records",
@@ -215,6 +267,7 @@ def add_prescription(history_id):
             )
 
         flash("Prescription created successfully.", "success")
+
         return redirect(
             url_for(
                 "medical_records.patient_records",
@@ -225,5 +278,163 @@ def add_prescription(history_id):
     return render_template(
         "medical_records/add_prescription.html",
         history=history,
+        form={},
+    )
+
+@medical_records_bp.route(
+    "/history/<int:history_id>/edit",
+    methods=["GET", "POST"],
+)
+@role_required("Administrator", "Doctor")
+def edit_medical_history(history_id):
+    """Edit an existing medical history record."""
+    with _connection() as connection:
+        record = connection.execute("""
+            SELECT mh.*, patients.full_name, patients.patient_code
+            FROM medical_history AS mh
+            JOIN patients ON patients.id = mh.patient_id
+            WHERE mh.id = ?
+        """, (history_id,)).fetchone()
+
+    if record is None:
+        flash("Medical history record not found.", "danger")
+        return redirect(url_for("medical_records.index"))
+
+    if request.method == "POST":
+        diagnosis = _clean(request.form.get("diagnosis"))
+        symptoms = _clean(request.form.get("symptoms"))
+        clinical_notes = _clean(request.form.get("clinical_notes"))
+
+        fields = {
+            "Diagnosis": (diagnosis, 200),
+            "Symptoms": (symptoms, 2000),
+            "Clinical notes": (clinical_notes, 5000),
+        }
+
+        errors = [
+            f"Enter valid {label.lower()} (maximum {limit} characters)."
+            for label, (value, limit) in fields.items()
+            if not value or len(value) > limit
+        ]
+
+        if errors:
+            for error in errors:
+                flash(error, "danger")
+
+            return render_template(
+                "medical_records/edit_history.html",
+                record=record,
+                form=request.form,
+            )
+
+        with _connection() as connection:
+            connection.execute("""
+                UPDATE medical_history
+                SET diagnosis = ?,
+                    symptoms = ?,
+                    clinical_notes = ?
+                WHERE id = ?
+            """, (
+                diagnosis,
+                symptoms,
+                clinical_notes,
+                history_id,
+            ))
+
+        flash("Medical history updated successfully.", "success")
+
+        return redirect(
+            url_for(
+                "medical_records.patient_records",
+                patient_id=record["patient_id"],
+            )
+        )
+
+    return render_template(
+        "medical_records/edit_history.html",
+        record=record,
+        form={},
+    )
+
+
+@medical_records_bp.route(
+    "/prescription/<int:prescription_id>/edit",
+    methods=["GET", "POST"],
+)
+@role_required("Administrator", "Doctor")
+def edit_prescription(prescription_id):
+    """Edit an existing prescription."""
+    with _connection() as connection:
+        prescription = connection.execute("""
+            SELECT p.*, patients.full_name, patients.patient_code
+            FROM prescriptions AS p
+            JOIN patients ON patients.id = p.patient_id
+            WHERE p.id = ?
+        """, (prescription_id,)).fetchone()
+
+    if prescription is None:
+        flash("Prescription not found.", "danger")
+        return redirect(url_for("medical_records.index"))
+
+    if request.method == "POST":
+        medication_name = _clean(
+            request.form.get("medication_name")
+        )
+        dosage = _clean(request.form.get("dosage"))
+        frequency = _clean(request.form.get("frequency"))
+        duration = _clean(request.form.get("duration"))
+
+        fields = {
+            "Medication name": (medication_name, 120),
+            "Dosage": (dosage, 100),
+            "Frequency": (frequency, 100),
+            "Duration": (duration, 100),
+        }
+
+        errors = [
+            f"Enter a valid {label.lower()} "
+            f"(maximum {limit} characters)."
+            for label, (value, limit) in fields.items()
+            if not value or len(value) > limit
+        ]
+
+        if errors:
+            for error in errors:
+                flash(error, "danger")
+
+            return render_template(
+                "medical_records/edit_prescription.html",
+                prescription=prescription,
+                form=request.form,
+            )
+
+        with _connection() as connection:
+            connection.execute("""
+                UPDATE prescriptions
+                SET medication_name = ?,
+                    dosage = ?,
+                    frequency = ?,
+                    duration = ?
+                WHERE id = ?
+            """, (
+                medication_name,
+                dosage,
+                frequency,
+                duration,
+                prescription_id,
+            ))
+
+        flash("Prescription updated successfully.", "success")
+
+        return redirect(
+            url_for(
+                "medical_records.patient_records",
+                patient_id=prescription["patient_id"],
+            )
+        )
+
+    return render_template(
+        "medical_records/edit_prescription.html",
+        prescription=prescription,
         form={},
     )
