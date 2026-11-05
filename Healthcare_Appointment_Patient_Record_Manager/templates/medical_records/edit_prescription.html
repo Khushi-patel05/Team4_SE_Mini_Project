@@ -1,0 +1,17 @@
+
+{% extends "base.html" %}
+{% block title %}Edit Prescription{% endblock %}
+{% block content %}
+<h2>Edit Prescription</h2>
+<form method="POST">
+  <label>Medication Name</label>
+  <input class="form-control mb-3" name="medication_name" maxlength="120" required value="{{ record['medication_name'] }}">
+  <label>Dosage</label>
+  <input class="form-control mb-3" name="dosage" maxlength="100" required value="{{ record['dosage'] }}">
+  <label>Frequency</label>
+  <input class="form-control mb-3" name="frequency" maxlength="100" required value="{{ record['frequency'] }}">
+  <label>Duration</label>
+  <input class="form-control mb-3" name="duration" maxlength="100" required value="{{ record['duration'] }}">
+  <button class="btn btn-primary">Save Changes</button>
+</form>
+{% endblock %}
