@@ -295,3 +295,182 @@ def test_deleting_history_cascades_to_prescriptions(
         ).fetchone()[0]
 
     assert remaining == 0
+def test_medical_history_rejects_null_required_fields(
+    medical_db, client, patient_data
+):
+    patient_id = register_patient(client, patient_data)
+
+    with app_module.get_db_connection() as connection:
+        with pytest.raises(sqlite3.IntegrityError):
+            connection.execute(
+                """
+                INSERT INTO medical_history
+                    (patient_id, diagnosis, symptoms, clinical_notes)
+                VALUES (?, NULL, ?, ?)
+                """,
+                (patient_id, "Fever", "Rest advised"),
+            )
+
+
+def test_prescription_rejects_null_required_fields(
+    medical_db, client, patient_data
+):
+    patient_id = register_patient(client, patient_data)
+    history_id = create_history(patient_id)
+
+    with app_module.get_db_connection() as connection:
+        with pytest.raises(sqlite3.IntegrityError):
+            connection.execute(
+                """
+                INSERT INTO prescriptions (
+                    patient_id, medical_history_id,
+                    medication_name, dosage, frequency, duration
+                )
+                VALUES (?, ?, NULL, ?, ?, ?)
+                """,
+                (
+                    patient_id, history_id,
+                    "500 mg", "Daily", "3 days"
+                ),
+            )
+
+
+def test_duplicate_medical_history_records_are_allowed(
+    medical_db, client, patient_data
+):
+    patient_id = register_patient(client, patient_data)
+
+    with app_module.get_db_connection() as connection:
+        for _ in range(2):
+            connection.execute(
+                """
+                INSERT INTO medical_history
+                    (patient_id, diagnosis, symptoms, clinical_notes)
+                VALUES (?, ?, ?, ?)
+                """,
+                (
+                    patient_id,
+                    "Seasonal flu",
+                    "Fever and cough",
+                    "Rest advised",
+                ),
+            )
+
+        count = connection.execute(
+            """
+            SELECT COUNT(*) FROM medical_history
+            WHERE patient_id = ? AND diagnosis = ?
+            """,
+            (patient_id, "Seasonal flu"),
+        ).fetchone()[0]
+
+    assert count == 2
+
+
+def test_duplicate_prescriptions_are_allowed(
+    medical_db, client, patient_data
+):
+    patient_id = register_patient(client, patient_data)
+    history_id = create_history(patient_id)
+
+    with app_module.get_db_connection() as connection:
+        for _ in range(2):
+            connection.execute(
+                """
+                INSERT INTO prescriptions (
+                    patient_id, medical_history_id,
+                    medication_name, dosage, frequency, duration
+                )
+                VALUES (?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    patient_id, history_id,
+                    "Paracetamol", "500 mg",
+                    "Twice daily", "3 days",
+                ),
+            )
+
+        count = connection.execute(
+            """
+            SELECT COUNT(*) FROM prescriptions
+            WHERE medical_history_id = ?
+              AND medication_name = ?
+            """,
+            (history_id, "Paracetamol"),
+        ).fetchone()[0]
+
+    assert count == 2
+def test_medical_history_rejects_whitespace_only_fields(
+    medical_db, client, patient_data
+):
+    patient_id = register_patient(client, patient_data)
+
+    response = client.post(
+        f"/medical-records/patient/{patient_id}/history/new",
+        data={
+            "diagnosis": "   ",
+            "symptoms": "Fever",
+            "clinical_notes": "Rest advised",
+        },
+        follow_redirects=True,
+    )
+
+    assert b"Enter a diagnosis" in response.data
+
+
+def test_medical_history_rejects_excessive_field_length(
+    medical_db, client, patient_data
+):
+    patient_id = register_patient(client, patient_data)
+
+    response = client.post(
+        f"/medical-records/patient/{patient_id}/history/new",
+        data={
+            "diagnosis": "A" * 201,
+            "symptoms": "Fever",
+            "clinical_notes": "Rest advised",
+        },
+        follow_redirects=True,
+    )
+
+    assert b"Enter a diagnosis" in response.data
+
+
+def test_prescription_rejects_whitespace_only_fields(
+    medical_db, client, patient_data
+):
+    patient_id = register_patient(client, patient_data)
+    history_id = create_history(patient_id)
+
+    response = client.post(
+        f"/medical-records/history/{history_id}/prescriptions/new",
+        data={
+            "medication_name": "   ",
+            "dosage": "500 mg",
+            "frequency": "Daily",
+            "duration": "3 days",
+        },
+        follow_redirects=True,
+    )
+
+    assert b"valid medication name" in response.data
+
+
+def test_prescription_rejects_excessive_field_length(
+    medical_db, client, patient_data
+):
+    patient_id = register_patient(client, patient_data)
+    history_id = create_history(patient_id)
+
+    response = client.post(
+        f"/medical-records/history/{history_id}/prescriptions/new",
+        data={
+            "medication_name": "A" * 121,
+            "dosage": "500 mg",
+            "frequency": "Daily",
+            "duration": "3 days",
+        },
+        follow_redirects=True,
+    )
+
+    assert b"valid medication name" in response.data
