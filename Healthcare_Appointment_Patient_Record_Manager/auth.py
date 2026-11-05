@@ -1,3 +1,4 @@
+
 import sqlite3
 from functools import wraps
 
@@ -53,6 +54,9 @@ def create_user(username, password, role):
 
     if not username or not password:
         raise ValueError("Username and password are required.")
+
+    if len(password) < 8:
+        raise ValueError("Password must contain at least 8 characters.")
 
     if role not in allowed_roles:
         raise ValueError("Invalid user role.")
@@ -161,10 +165,6 @@ def manage_users():
         username = request.form.get("username", "").strip()
         password = request.form.get("password", "")
         role = request.form.get("role", "")
-
-        if len(password) < 8:
-            flash("Password must contain at least 8 characters.", "danger")
-            return redirect(url_for("auth.manage_users"))
 
         try:
             create_user(username, password, role)
