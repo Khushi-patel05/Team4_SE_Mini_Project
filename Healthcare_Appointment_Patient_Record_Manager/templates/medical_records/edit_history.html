@@ -1,0 +1,15 @@
+
+{% extends "base.html" %}
+{% block title %}Edit Medical History{% endblock %}
+{% block content %}
+<h2>Edit Medical History</h2>
+<form method="POST">
+  <label>Diagnosis</label>
+  <input class="form-control mb-3" name="diagnosis" maxlength="200" required value="{{ record['diagnosis'] }}">
+  <label>Symptoms</label>
+  <textarea class="form-control mb-3" name="symptoms" maxlength="2000" required>{{ record['symptoms'] }}</textarea>
+  <label>Clinical Notes</label>
+  <textarea class="form-control mb-3" name="clinical_notes" maxlength="5000" required>{{ record['clinical_notes'] }}</textarea>
+  <button class="btn btn-primary">Save Changes</button>
+</form>
+{% endblock %}

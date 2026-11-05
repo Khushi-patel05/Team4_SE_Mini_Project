@@ -205,3 +205,148 @@ def test_medical_records_page_handles_missing_patient(client):
     )
     assert response.status_code == 200
     assert b"Patient record not found." in response.data
+
+def test_update_medical_history(client, app, patient_data):
+    patient_id = register_patient(client, patient_data)
+    history_id = create_history(client, patient_id)
+
+    response = client.post(
+        f"/medical-records/history/{history_id}/edit",
+        data={
+            "diagnosis": "Updated diagnosis",
+            "symptoms": "Updated symptoms",
+            "clinical_notes": "Updated clinical notes",
+        },
+        follow_redirects=True,
+    )
+
+    assert response.status_code == 200
+
+    with app_module.get_db_connection() as connection:
+        record = connection.execute(
+            "SELECT * FROM medical_history WHERE id = ?",
+            (history_id,),
+        ).fetchone()
+
+    assert record["diagnosis"] == "Updated diagnosis"
+    assert record["symptoms"] == "Updated symptoms"
+
+
+def test_delete_medical_history_cascades(client, app, patient_data):
+    patient_id = register_patient(client, patient_data)
+    history_id = create_history(client, patient_id)
+
+    client.post(
+        f"/medical-records/history/{history_id}/prescriptions/new",
+        data={
+            "medication_name": "Paracetamol",
+            "dosage": "500mg",
+            "frequency": "Twice daily",
+            "duration": "5 days",
+        },
+    )
+
+    response = client.post(
+        f"/medical-records/history/{history_id}/delete",
+        follow_redirects=True,
+    )
+
+    assert response.status_code == 200
+
+    with app_module.get_db_connection() as connection:
+        history = connection.execute(
+            "SELECT * FROM medical_history WHERE id = ?",
+            (history_id,),
+        ).fetchone()
+
+        prescriptions = connection.execute(
+            "SELECT * FROM prescriptions WHERE medical_history_id = ?",
+            (history_id,),
+        ).fetchall()
+
+    assert history is None
+    assert len(prescriptions) == 0
+
+
+def test_update_prescription(client, app, patient_data):
+    patient_id = register_patient(client, patient_data)
+    history_id = create_history(client, patient_id)
+
+    client.post(
+        f"/medical-records/history/{history_id}/prescriptions/new",
+        data={
+            "medication_name": "Paracetamol",
+            "dosage": "500mg",
+            "frequency": "Twice daily",
+            "duration": "5 days",
+        },
+    )
+
+    with app_module.get_db_connection() as connection:
+        prescription = connection.execute(
+            "SELECT id FROM prescriptions WHERE medical_history_id = ?",
+            (history_id,),
+        ).fetchone()
+
+    prescription_id = prescription["id"]
+
+    response = client.post(
+        f"/medical-records/prescription/{prescription_id}/edit",
+        data={
+            "medication_name": "Amoxicillin",
+            "dosage": "250mg",
+            "frequency": "Three times daily",
+            "duration": "7 days",
+        },
+        follow_redirects=True,
+    )
+
+    assert response.status_code == 200
+
+    with app_module.get_db_connection() as connection:
+        updated = connection.execute(
+            "SELECT * FROM prescriptions WHERE id = ?",
+            (prescription_id,),
+        ).fetchone()
+
+    assert updated["medication_name"] == "Amoxicillin"
+    assert updated["dosage"] == "250mg"
+
+
+def test_delete_prescription(client, app, patient_data):
+    patient_id = register_patient(client, patient_data)
+    history_id = create_history(client, patient_id)
+
+    client.post(
+        f"/medical-records/history/{history_id}/prescriptions/new",
+        data={
+            "medication_name": "Paracetamol",
+            "dosage": "500mg",
+            "frequency": "Twice daily",
+            "duration": "5 days",
+        },
+    )
+
+    with app_module.get_db_connection() as connection:
+        prescription = connection.execute(
+            "SELECT id FROM prescriptions WHERE medical_history_id = ?",
+            (history_id,),
+        ).fetchone()
+
+    prescription_id = prescription["id"]
+
+    response = client.post(
+        f"/medical-records/prescription/{prescription_id}/delete",
+        follow_redirects=True,
+    )
+
+    assert response.status_code == 200
+
+    with app_module.get_db_connection() as connection:
+        deleted = connection.execute(
+            "SELECT * FROM prescriptions WHERE id = ?",
+            (prescription_id,),
+        ).fetchone()
+
+    assert deleted is None
+

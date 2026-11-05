@@ -227,3 +227,155 @@ def add_prescription(history_id):
         history=history,
         form={},
     )
+
+@medical_records_bp.route(
+    "/history/<int:history_id>/edit",
+    methods=["GET", "POST"],
+)
+def edit_medical_history(history_id):
+    with _connection() as connection:
+        record = connection.execute(
+            "SELECT * FROM medical_history WHERE id = ?",
+            (history_id,),
+        ).fetchone()
+
+    if record is None:
+        flash("Medical history record not found.", "danger")
+        return redirect(url_for("medical_records.index"))
+
+    if request.method == "POST":
+        diagnosis = _clean(request.form.get("diagnosis"))
+        symptoms = _clean(request.form.get("symptoms"))
+        clinical_notes = _clean(request.form.get("clinical_notes"))
+
+        if (
+            not diagnosis or len(diagnosis) > 200
+            or not symptoms or len(symptoms) > 2000
+            or not clinical_notes or len(clinical_notes) > 5000
+        ):
+            flash("Please enter valid medical history details.", "danger")
+            return redirect(url_for(
+                "medical_records.patient_records",
+                patient_id=record["patient_id"],
+            ))
+
+        with _connection() as connection:
+            connection.execute("""
+                UPDATE medical_history
+                SET diagnosis = ?, symptoms = ?, clinical_notes = ?
+                WHERE id = ?
+            """, (diagnosis, symptoms, clinical_notes, history_id))
+
+        flash("Medical history updated successfully.", "success")
+        return redirect(url_for(
+            "medical_records.patient_records",
+            patient_id=record["patient_id"],
+        ))
+
+    return render_template(
+        "medical_records/edit_history.html", record=record
+    )
+
+
+@medical_records_bp.post("/history/<int:history_id>/delete")
+def delete_medical_history(history_id):
+    with _connection() as connection:
+        record = connection.execute(
+            "SELECT patient_id FROM medical_history WHERE id = ?",
+            (history_id,),
+        ).fetchone()
+
+        if record is None:
+            flash("Medical history record not found.", "danger")
+            return redirect(url_for("medical_records.index"))
+
+        patient_id = record["patient_id"]
+        connection.execute(
+            "DELETE FROM medical_history WHERE id = ?", (history_id,)
+        )
+
+    flash("Medical history deleted successfully.", "success")
+    return redirect(url_for(
+        "medical_records.patient_records", patient_id=patient_id
+    ))
+
+
+@medical_records_bp.route(
+    "/prescription/<int:prescription_id>/edit",
+    methods=["GET", "POST"],
+)
+def edit_prescription(prescription_id):
+    with _connection() as connection:
+        record = connection.execute(
+            "SELECT * FROM prescriptions WHERE id = ?",
+            (prescription_id,),
+        ).fetchone()
+
+    if record is None:
+        flash("Prescription record not found.", "danger")
+        return redirect(url_for("medical_records.index"))
+
+    if request.method == "POST":
+        values = {
+            "medication_name": (_clean(request.form.get("medication_name")), 120),
+            "dosage": (_clean(request.form.get("dosage")), 100),
+            "frequency": (_clean(request.form.get("frequency")), 100),
+            "duration": (_clean(request.form.get("duration")), 100),
+        }
+
+        if any(not value or len(value) > limit
+               for value, limit in values.values()):
+            flash("Please enter valid prescription details.", "danger")
+            return redirect(url_for(
+                "medical_records.patient_records",
+                patient_id=record["patient_id"],
+            ))
+
+        with _connection() as connection:
+            connection.execute("""
+                UPDATE prescriptions
+                SET medication_name = ?, dosage = ?,
+                    frequency = ?, duration = ?
+                WHERE id = ?
+            """, (
+                values["medication_name"][0],
+                values["dosage"][0],
+                values["frequency"][0],
+                values["duration"][0],
+                prescription_id,
+            ))
+
+        flash("Prescription updated successfully.", "success")
+        return redirect(url_for(
+            "medical_records.patient_records",
+            patient_id=record["patient_id"],
+        ))
+
+    return render_template(
+        "medical_records/edit_prescription.html", record=record
+    )
+
+
+@medical_records_bp.post("/prescription/<int:prescription_id>/delete")
+def delete_prescription(prescription_id):
+    with _connection() as connection:
+        record = connection.execute(
+            "SELECT patient_id FROM prescriptions WHERE id = ?",
+            (prescription_id,),
+        ).fetchone()
+
+        if record is None:
+            flash("Prescription record not found.", "danger")
+            return redirect(url_for("medical_records.index"))
+
+        patient_id = record["patient_id"]
+        connection.execute(
+            "DELETE FROM prescriptions WHERE id = ?",
+            (prescription_id,),
+        )
+
+    flash("Prescription deleted successfully.", "success")
+    return redirect(url_for(
+        "medical_records.patient_records", patient_id=patient_id
+    ))
+
