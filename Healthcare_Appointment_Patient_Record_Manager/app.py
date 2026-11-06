@@ -10,6 +10,7 @@ from flask import (
     redirect,
     url_for,
     flash,
+    session,
 )
 
 from config import DATABASE_PATH, SECRET_KEY
@@ -17,15 +18,7 @@ from medical_records import (
     medical_records_bp,
     initialize_medical_records_db,
 )
-
 from auth import auth_bp, initialize_auth_database, role_required
-
-from medical_records import (
-    medical_records_bp,
-    initialize_medical_records_db,
-)
-
-
 
 
 # =========================================================
@@ -35,7 +28,6 @@ from medical_records import (
 app = Flask(__name__)
 app.config["SECRET_KEY"] = SECRET_KEY
 app.config["DATABASE"] = str(DATABASE_PATH)
-
 
 app.register_blueprint(auth_bp)
 app.register_blueprint(medical_records_bp)
@@ -110,6 +102,8 @@ def initialize_database():
         """)
 
     initialize_medical_records_db(app.config["DATABASE"])
+
+
 # =========================================================
 # PATIENT VALIDATION
 # =========================================================
@@ -127,7 +121,6 @@ def validate_patient(form):
     if not full_name or len(full_name) > 100:
         return None, "Enter a name of at most 100 characters."
 
-    # Correct regex: * means zero or more valid characters.
     if not re.fullmatch(r"[A-Za-z][A-Za-z .'-]*", full_name):
         return None, "Name must contain valid letters and punctuation."
 
@@ -199,7 +192,6 @@ def validate_appointment(form):
 
     try:
         selected_date = date.fromisoformat(appointment_date)
-
         selected_time = datetime.strptime(
             appointment_time, "%H:%M"
         ).time()
@@ -231,6 +223,7 @@ def validate_appointment(form):
 # =========================================================
 
 @app.route("/")
+@role_required("Administrator", "Doctor", "Receptionist")
 def home():
     return redirect(url_for("patients"))
 
@@ -245,12 +238,16 @@ def health_check():
 # =========================================================
 
 @app.route("/patients", methods=["GET", "POST"])
-
 @role_required("Administrator", "Doctor", "Receptionist")
-
 def patients():
 
     if request.method == "POST":
+
+        # Only Administrator and Receptionist can register patients.
+        if session.get("role") not in {"Administrator", "Receptionist"}:
+            flash("You are not authorized to register patients.", "danger")
+            return redirect(url_for("patients"))
+
         patient, error = validate_patient(request.form)
 
         if error:
@@ -347,6 +344,7 @@ def patients():
 # =========================================================
 
 @app.route("/patients/<int:patient_id>")
+@role_required("Administrator", "Doctor", "Receptionist")
 def view_patient(patient_id):
 
     with get_db_connection() as connection:
@@ -374,6 +372,7 @@ def view_patient(patient_id):
     "/patients/<int:patient_id>/edit",
     methods=["GET", "POST"],
 )
+@role_required("Administrator", "Receptionist")
 def edit_patient(patient_id):
 
     with get_db_connection() as connection:
@@ -446,6 +445,7 @@ def edit_patient(patient_id):
     "/patients/<int:patient_id>/delete",
     methods=["POST"],
 )
+@role_required("Administrator")
 def delete_patient(patient_id):
 
     try:
@@ -492,6 +492,12 @@ def delete_patient(patient_id):
 def appointments():
 
     if request.method == "POST":
+
+        # Only Administrator and Receptionist can book appointments.
+        if session.get("role") not in {"Administrator", "Receptionist"}:
+            flash("You are not authorized to book appointments.", "danger")
+            return redirect(url_for("appointments"))
+
         appointment, error = validate_appointment(request.form)
 
         if error:
@@ -617,6 +623,7 @@ def appointments():
     "/appointments/<int:appointment_id>/edit",
     methods=["GET", "POST"],
 )
+@role_required("Administrator", "Receptionist")
 def edit_appointment(appointment_id):
 
     with get_db_connection() as connection:
@@ -723,6 +730,7 @@ def edit_appointment(appointment_id):
     "/appointments/<int:appointment_id>/status",
     methods=["POST"],
 )
+@role_required("Administrator", "Receptionist")
 def update_appointment_status(appointment_id):
 
     new_status = request.form.get("status", "").strip()
@@ -767,11 +775,8 @@ def update_appointment_status(appointment_id):
 # APPLICATION ENTRY POINT
 # =========================================================
 
-# Keep this initialization because your existing project uses it.
 initialize_database()
 
 
 if __name__ == "__main__":
-    initialize_database()
-    initialize_medical_records_db(app.config["DATABASE"])
     app.run(debug=True)
