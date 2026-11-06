@@ -95,3 +95,34 @@ No test failures were observed during the complete application test run.
 ## 7. Scope
 
 This report focuses on the medical-history and prescription database module. The complete application test suite was executed to check for regressions, but this does not constitute exhaustive verification of every database table or business rule.
+
+## 8. Testing Issues and Observations
+
+| ID | Observation | Impact | Status |
+|---|---|---|---|
+| DB-01 | Duplicate medical-history records are permitted. | May create repeated clinical entries. | Documented |
+| DB-02 | Duplicate prescriptions are permitted. | May create repeated medication entries. | Documented |
+| DB-03 | No uniqueness constraints are defined for these records. | Duplicate prevention is not enforced at database level. | Documented |
+
+These observations reflect the current database design. No changes
+were made to duplicate-record behaviour because a uniqueness
+requirement was not specified.
+
+## 9. Test Execution
+
+**Testing framework:** pytest  
+**Database:** SQLite  
+**Commands executed:**
+
+- `python -m pytest tests/test_database_integrity.py -v`
+- `python -m pytest -v`
+
+**Final result:** 58 tests passed, 0 failed.
+
+## 10. Final Assessment
+
+The medical-history and prescription modules passed the implemented
+database integrity, constraint and validation tests.
+
+The identified duplicate-record behaviour has been documented for
+future consideration. No unresolved test failures were observed.
