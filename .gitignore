@@ -1,3 +1,11 @@
 .coverage
 __pycache__/
+<<<<<<< HEAD
 .pytest_cache/
+=======
+*.py[cod]
+.hypothesis/
+.pytest_cache/
+__pycache__/
+*.py[cod]
+>>>>>>> f6aa45a (Add Lab 7 hospital triage fuzz testing)
